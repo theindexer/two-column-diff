@@ -5,6 +5,10 @@ import fcntl, termios, struct
 import re
 import textwrap
 
+GREEN = "\033[1;32m"
+RED = "\033[1;31m"
+CLEAR = "\033[0m"
+
 def terminal_size():
     h, w, hp, wp = struct.unpack('HHHH',
         fcntl.ioctl(2, termios.TIOCGWINSZ,
@@ -24,20 +28,14 @@ def doOutput(top, subtractedLines, addedLines):
         if i < len(addedLines):
             addLine = addedLines[i]
 
-        if re.match("\+\s", addLine):
-            addColor = "\033[1;32m"
-        else:
-            addColor = "\033[0m"
-        if re.match("-\s", subLine):
-            subColor = "\033[1;31m"
-        else:
-            subColor = "\033[0m"
+        addColor = GREEN if re.match("\+\s", addLine) else CLEAR
+        subColor = RED if re.match("-\s", subLine) else CLEAR
         subLines = textwrap.wrap(subLine, cols / 2 )
         addLines = textwrap.wrap(addLine, cols / 2)
         for i in range(max(len(subLines), len(addLines))):
             sub = subLines[i] if i < len(subLines) else ""
             add = addLines[i] if i < len(addLines) else ""
-            print subColor + sub.ljust(cols / 2, " ") + "\033[0m" + '|' + addColor + add.ljust(cols / 2, " ") + "\033[0m"
+            print subColor + sub.ljust(cols / 2, " ") + CLEAR + '|' + addColor + add.ljust(cols / 2, " ") + CLEAR 
 
 addedLines = {}
 addedLineNo = 0
@@ -62,10 +60,10 @@ for line in sys.stdin:
       subtractedLines = {}
       subtractedLineNo = 0
       lineNo = 0
-  elif re.match("^\+\s", line):
+  elif re.match("^\+", line):
       addedLines[addedLineNo] = line
       addedLineNo += 1
-  elif re.match("^-\s", line):
+  elif re.match("^-", line):
       subtractedLines[subtractedLineNo] = line
       subtractedLineNo += 1
   else:
