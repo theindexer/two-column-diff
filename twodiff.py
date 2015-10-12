@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# encoding: utf-8
 import sys
 import os
 import fcntl, termios, struct
@@ -19,7 +20,7 @@ cols, rows = terminal_size()
 def doOutput(top, subtractedLines, addedLines):
     print ""
     for line in top:
-        print line
+        print line.rjust(cols / 2 + len(line) / 2, " ")
     for i in range(max(len(subtractedLines), len(addedLines))):
         subLine = ""
         addLine = ""
@@ -28,14 +29,14 @@ def doOutput(top, subtractedLines, addedLines):
         if i < len(addedLines):
             addLine = addedLines[i]
 
-        addColor = GREEN if re.match("\+\s", addLine) else CLEAR
-        subColor = RED if re.match("-\s", subLine) else CLEAR
+        addColor = GREEN if re.match("^\+", addLine) else CLEAR
+        subColor = RED if re.match("^-", subLine) else CLEAR
         subLines = textwrap.wrap(subLine, cols / 2 )
         addLines = textwrap.wrap(addLine, cols / 2)
         for i in range(max(len(subLines), len(addLines))):
             sub = subLines[i] if i < len(subLines) else ""
             add = addLines[i] if i < len(addLines) else ""
-            print subColor + sub.ljust(cols / 2, " ") + CLEAR + '|' + addColor + add.ljust(cols / 2, " ") + CLEAR 
+            print subColor + sub.ljust(cols / 2, " ") + CLEAR + '│' + addColor + add + CLEAR 
 
 addedLines = {}
 addedLineNo = 0
@@ -48,7 +49,14 @@ for line in sys.stdin:
   if re.match("[^+-@\s]", line):
       continue
   if re.match("^---", line):
-      continue
+      doOutput(top, subtractedLines, addedLines)
+      top = []
+      top += [line]
+      addedLines = {}
+      addedLineNo = 0
+      subtractedLines = {}
+      subtractedLineNo = 0
+      lineNo = 0
   elif re.match("\+\+\+", line):
       top += [line]
   elif re.match("@@", line):
@@ -60,20 +68,23 @@ for line in sys.stdin:
       subtractedLines = {}
       subtractedLineNo = 0
       lineNo = 0
-  elif re.match("^\+", line):
-      addedLines[addedLineNo] = line
-      addedLineNo += 1
-  elif re.match("^-", line):
-      subtractedLines[subtractedLineNo] = line
-      subtractedLineNo += 1
   else:
-      lineNo = max(addedLineNo, subtractedLineNo)
-      for i in range(subtractedLineNo, lineNo):
-          subtractedLines[i] = ""
-      for i in range(addedLineNo, lineNo):
-          addedLines[i] = ""
-      addedLines[lineNo] = line
-      subtractedLines[lineNo] = line
-      addedLineNo = lineNo + 1
-      subtractedLineNo = lineNo + 1
+      if not top:
+          continue
+      elif re.match("^\+", line):
+          addedLines[addedLineNo] = line
+          addedLineNo += 1
+      elif re.match("^-", line):
+          subtractedLines[subtractedLineNo] = line
+          subtractedLineNo += 1
+      else:
+          lineNo = max(addedLineNo, subtractedLineNo)
+          for i in range(subtractedLineNo, lineNo):
+              subtractedLines[i] = ""
+          for i in range(addedLineNo, lineNo):
+              addedLines[i] = ""
+          addedLines[lineNo] = line
+          subtractedLines[lineNo] = line
+          addedLineNo = lineNo + 1
+          subtractedLineNo = lineNo + 1
 doOutput(top, subtractedLines, addedLines)
